@@ -52,9 +52,11 @@ defmodule Replug do
   end
 
   def call(conn, %{plug: {plug_module, static_opts}, opts: {opts_module, opts_function}}) do
+    dynamic_opts = apply(opts_module, opts_function)
+
     opts =
       static_opts
-      |> merge_opts(opts_function.())
+      |> merge_opts(dynamic_opts)
       |> plug_module.init()
 
     plug_module.call(conn, opts)
