@@ -2,26 +2,15 @@ defmodule Replug do
   @moduledoc """
   ```
   plug Replug,
-    plug: {Corsica, max_age: 600, expose_headers: ~w(X-Foo)},
-    opts: fn ->
-      [origins: System.get_env("VALID_ORIGINS")]
-    end
-  ```
-
-  or
-
-  ```
-  plug Replug,
     plug: Corsica,
     opts: fn ->
       [
-        origins: System.get_env("VALID_ORIGINS"),
-        max_age: 600,
-        expose_headers: ~w(X-Foo)
+        max_age: System.get_env("CORSICA_MAX_AGE"),
+        expose_headers: ~w(X-Foo),
+        origins: System.get_env("VALID_ORIGINS")
       ]
     end
   ```
-
   """
 
   @behaviour Plug
@@ -30,14 +19,14 @@ defmodule Replug do
   def init(opts) do
     plug =
       case Keyword.get(opts, :plug) do
-        {module, opts} when is_atom(module) and is_list(opts) ->
-          {module, opts}
+        {plug_module, opts} when is_atom(plug_module) and is_list(opts) ->
+          {plug_module, opts}
 
-        module when is_atom(module) ->
-          {module, :only_dynamic_opts}
+        plug_module when is_atom(plug_module) ->
+          {plug_module, :only_dynamic_opts}
 
         nil ->
-          raise("Replug requires a :plug entry")
+          raise("Replug requires a :plug entry with a module or tuple value")
       end
 
     %{
@@ -47,21 +36,39 @@ defmodule Replug do
   end
 
   @impl true
-  def call(conn, %{plug: {module, :only_dynamic_opts}, opts: opts_function}) do
+  def call(conn, %{plug: {plug_module, :only_dynamic_opts}, opts: opts_function}) when is_function(opts_function) do
     opts =
       opts_function.()
-      |> module.init()
+      |> plug_module.init()
 
-    module.call(conn, opts)
+    plug_module.call(conn, opts)
   end
 
-  def call(conn, %{plug: {module, static_opts}, opts: opts_function}) do
+  def call(conn, %{plug: {plug_module, static_opts}, opts: opts_function}) when is_function(opts_function) do
     opts =
       static_opts
       |> merge_opts(opts_function.())
-      |> module.init()
+      |> plug_module.init()
 
-    module.call(conn, opts)
+    plug_module.call(conn, opts)
+  end
+
+  def call(conn, %{plug: {plug_module, :only_dynamic_opts}, opts: {opts_module, opts_function}}) do
+    opts =
+      opts_module
+      |> apply(opts_function, [])
+      |> plug_module.init()
+
+    plug_module.call(conn, opts)
+  end
+
+  def call(conn, %{plug: {plug_module, static_opts}, opts: {opts_module, opts_function}}) do
+    opts =
+      static_opts
+      |> merge_opts(opts_function.())
+      |> plug_module.init()
+
+    plug_module.call(conn, opts)
   end
 
   defp merge_opts(static_opts, dynamic_opts)
