@@ -7,7 +7,25 @@ defmodule Replug.MixProject do
       version: "0.1.0",
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      elixirc_paths: elixirc_paths(Mix.env()),
+      name: "Replug",
+      source_url: "https://github.com/akoutmos/replug",
+      homepage_url: "https://hex.pm/packages/replug",
+      description: "A plug that can be used to configure other plugs at run-time",
+      docs: [
+        main: "readme",
+        extras: ["README.md"]
+      ],
+      package: package(),
+      deps: deps(),
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test,
+        "coveralls.travis": :test
+      ]
     ]
   end
 
@@ -15,6 +33,19 @@ defmodule Replug.MixProject do
   def application do
     [
       extra_applications: [:logger]
+    ]
+  end
+
+  # Specifies which paths to compile per environment.
+  defp elixirc_paths(:test), do: ["lib", "test/test_plugs", "test/test_configs"]
+  defp elixirc_paths(_), do: ["lib"]
+
+  defp package() do
+    [
+      name: "replug",
+      files: ~w(lib mix.exs README.md LICENSE CHANGELOG.md),
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/akoutmos/replug"}
     ]
   end
 
