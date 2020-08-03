@@ -1,15 +1,21 @@
 defmodule Replug do
   @moduledoc """
   ```
+  # ---- router.ex ----
   plug Replug,
     plug: Corsica,
-    opts: fn ->
+    opts: {MyAppWeb.PlugConfigs, :corsica}
+
+  # ---- plug_configs.ex ----
+  defmodule MyAppWeb.PlugConfigs do
+    def corsica do
       [
         max_age: System.get_env("CORSICA_MAX_AGE"),
         expose_headers: ~w(X-Foo),
         origins: System.get_env("VALID_ORIGINS")
       ]
     end
+  end
   ```
   """
 
@@ -36,23 +42,6 @@ defmodule Replug do
   end
 
   @impl true
-  def call(conn, %{plug: {plug_module, :only_dynamic_opts}, opts: opts_function}) when is_function(opts_function) do
-    opts =
-      opts_function.()
-      |> plug_module.init()
-
-    plug_module.call(conn, opts)
-  end
-
-  def call(conn, %{plug: {plug_module, static_opts}, opts: opts_function}) when is_function(opts_function) do
-    opts =
-      static_opts
-      |> merge_opts(opts_function.())
-      |> plug_module.init()
-
-    plug_module.call(conn, opts)
-  end
-
   def call(conn, %{plug: {plug_module, :only_dynamic_opts}, opts: {opts_module, opts_function}}) do
     opts =
       opts_module
