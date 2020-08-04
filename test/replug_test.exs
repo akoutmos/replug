@@ -68,6 +68,40 @@ defmodule ReplugTest do
       assert conn.assigns == %{some_value: "some_config_string", static_opts: "dummy_value"}
     end
 
+    test "should resolve environment variable when using the EnvVar config module and no static opts are set" do
+      System.put_env("SOME_VALUE", "some_config_string")
+
+      opts =
+        Replug.init(
+          plug: SimpleAssign,
+          opts: {Replug.Configs.EnvVar, :resolve, [some_value: "SOME_VALUE"]}
+        )
+
+      conn =
+        :get
+        |> conn("/")
+        |> Replug.call(opts)
+
+      assert conn.assigns == %{some_value: "some_config_string"}
+    end
+
+    test "should resolve environment variable when using the EnvVar config module with a map provided" do
+      System.put_env("SOME_VALUE", "some_config_string")
+
+      opts =
+        Replug.init(
+          plug: SimpleAssign,
+          opts: {Replug.Configs.EnvVar, :resolve, %{some_value: "SOME_VALUE"}}
+        )
+
+      conn =
+        :get
+        |> conn("/")
+        |> Replug.call(opts)
+
+      assert conn.assigns == %{some_value: "some_config_string"}
+    end
+
     test "should resolve environment variable when using the AppEnv config module" do
       Application.put_env(:my_app, :app_config_test, "some_config_string")
 
@@ -83,6 +117,40 @@ defmodule ReplugTest do
         |> Replug.call(opts)
 
       assert conn.assigns == %{some_value: "some_config_string", static_opts: "dummy_value"}
+    end
+
+    test "should resolve environment variable when using the AppEnv config module and no static configs are set" do
+      Application.put_env(:my_app, :app_config_test, "some_config_string")
+
+      opts =
+        Replug.init(
+          plug: SimpleAssign,
+          opts: {Replug.Configs.AppEnv, :resolve, %{some_value: [:my_app, :app_config_test]}}
+        )
+
+      conn =
+        :get
+        |> conn("/")
+        |> Replug.call(opts)
+
+      assert conn.assigns == %{some_value: "some_config_string"}
+    end
+
+    test "should resolve environment variable when using the AppEnv config module when a keyword list is provided" do
+      Application.put_env(:my_app, :app_config_test, "some_config_string")
+
+      opts =
+        Replug.init(
+          plug: SimpleAssign,
+          opts: {Replug.Configs.AppEnv, :resolve, [some_value: [:my_app, :app_config_test]]}
+        )
+
+      conn =
+        :get
+        |> conn("/")
+        |> Replug.call(opts)
+
+      assert conn.assigns == %{some_value: "some_config_string"}
     end
 
     test "should raise an error when required :opts are not provided" do
