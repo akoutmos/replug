@@ -65,14 +65,14 @@ defmodule Replug do
   def call(conn, %{plug: {plug_module, :only_dynamic_opts}, opts: {opts_module, opts_function, opt_args}}) do
     opts =
       opts_module
-      |> apply(opts_function, opt_args)
+      |> apply(opts_function, [opt_args])
       |> plug_module.init()
 
     plug_module.call(conn, opts)
   end
 
   def call(conn, %{plug: {plug_module, static_opts}, opts: {opts_module, opts_function, opt_args}}) do
-    dynamic_opts = apply(opts_module, opts_function, opt_args)
+    dynamic_opts = apply(opts_module, opts_function, [opt_args])
 
     opts =
       static_opts
